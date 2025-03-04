@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: vpc-cni-daemon
+  namespace: kube-system
+  labels:
+    app: vpc-cni
+    component: daemon
+spec:
+  selector:
+    matchLabels:
+      app: vpc-cni
+      component: daemon
+  template:
+    metadata:
+      labels:
+        app: vpc-cni
+        component: daemon
+    spec:
+      tolerations:
+        - operator: Exists
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+      priorityClassName: system-cluster-critical
+      serviceAccountName: vpc-cni
+      hostNetwork: true
+      hostPID: true
+      initContainers:
+        - name: install-cni
+          image: harbor-dev.yun-paas.com/dev/vpc-cni:v1.0.0 
+          imagePullPolicy: IfNotPresent
+          command: ["/cni/install-cni.sh"]
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          volumeMounts:
+            - mountPath: /etc/cni/net.d
+              name: cni-conf
+            - mountPath: /opt/cni/bin
+              name: cni-bin
+            - mountPath: /cni/00-vpc-cni.conflist
+              name: cni-conf-source
+              subPath: cni-config
+      containers:
+        - name: cni-daemon
+          image: harbor-dev.yun-paas.com/dev/vpc-cni:v1.0.0 
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - /cni/start-daemon.sh
+          args:
+            - --prefer-vlan-interfaces=bond0
+            - --check-pod-connectivity-from-host=false
+            - --enable-vlan-arp-enhancement=true
+            - --update-ipinstance-status=true
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          env:
+            - name: DEFAULT_IP_FAMILY
+              value: "IPv4" 
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 11021
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+            failureThreshold: 5
+          volumeMounts:
+            - mountPath: /run/cni
+              name: host-run-cni
+            - mountPath: /lib/modules
+              name: host-modules
+            - mountPath: /run/xtables.lock
+              name: xtables-lock
+            - mountPath: /var/run/netns
+              name: host-netns-dir
+              mountPropagation: Bidirectional
+          securityContext:
+            privileged: true
+            runAsUser: 0
+      tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      nodeSelector:
+        kubernetes.io/os: "linux"
+        katacontainers.io/kata-runtime: "true"
+      volumes:
+        - name: host-modules
+          hostPath:
+            path: /lib/modules
+        - name: host-run-cni
+          hostPath:
+            path: /run/cni
+        - name: cni-conf
+          hostPath:
+            path: /etc/cni/net.d
+        - name: cni-bin
+          hostPath:
+            path: /opt/cni/bin
+        - name: xtables-lock
+          hostPath:
+            path: /run/xtables.lock
+            type: FileOrCreate
+        - name: cni-conf-source
+          configMap:
+            name: vpc-cni-conf
+            items:
+              - key: cni-config
+                path: cni-config
+        - name: host-netns-dir
+          hostPath:
+            path: /var/run/netns

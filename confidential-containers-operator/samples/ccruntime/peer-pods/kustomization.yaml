@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+nameSuffix: -peer-pods
+
+resources:
+- ../base
+# - peerpodsconfig.yaml
+
+images:
+- name: quay.io/confidential-containers/reqs-payload
+  newTag: 7b06283a5be08f4d83f2bf15851d55739bf27ec5
+- name: quay.io/kata-containers/kata-deploy
+  newTag: 3.11.0
+
+
+patches:
+- patch: |-
+    - op: replace
+      path: /spec/config/runtimeClasses
+      value:
+      - name: "kata-remote"
+        snapshotter: "nydus"
+        pulltype: "guest-pull"
+    - op: add
+      path: /spec/config/debug
+      value: false
+    - op: add
+      path: /spec/config/environmentVariables
+      value:
+        # It means that we're relying on the cluster to already have
+        # containerd v1.7+ running.  If you know for sure that's not
+        # the case, please, set this variable to `true`
+        - name: "INSTALL_OFFICIAL_CONTAINERD"
+          value: "false"
+  target:
+    kind: CcRuntime

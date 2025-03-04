@@ -1,0 +1,50 @@
+- op: add
+  path: /stages/0/tests/-
+  value:
+    entrypoint:
+    - scorecard-test
+    - olm-bundle-validation
+    image: registry-bj.capitalonline.net/eci/quay.io/operator-framework/scorecard-test:v1.12.0
+    labels:
+      suite: olm
+      test: olm-bundle-validation-test
+- op: add
+  path: /stages/0/tests/-
+  value:
+    entrypoint:
+    - scorecard-test
+    - olm-crds-have-validation
+    image: registry-bj.capitalonline.net/eci/quay.io/operator-framework/scorecard-test:v1.12.0
+    labels:
+      suite: olm
+      test: olm-crds-have-validation-test
+- op: add
+  path: /stages/0/tests/-
+  value:
+    entrypoint:
+    - scorecard-test
+    - olm-crds-have-resources
+    image: registry-bj.capitalonline.net/eci/quay.io/operator-framework/scorecard-test:v1.12.0
+    labels:
+      suite: olm
+      test: olm-crds-have-resources-test
+- op: add
+  path: /stages/0/tests/-
+  value:
+    entrypoint:
+    - scorecard-test
+    - olm-spec-descriptors
+    image: registry-bj.capitalonline.net/eci/quay.io/operator-framework/scorecard-test:v1.12.0
+    labels:
+      suite: olm
+      test: olm-spec-descriptors-test
+- op: add
+  path: /stages/0/tests/-
+  value:
+    entrypoint:
+    - scorecard-test
+    - olm-status-descriptors
+    image: registry-bj.capitalonline.net/eci/quay.io/operator-framework/scorecard-test:v1.12.0
+    labels:
+      suite: olm
+      test: olm-status-descriptors-test

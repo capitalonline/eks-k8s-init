@@ -1,0 +1,102 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kata-monitor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kata-monitor
+subjects:
+- kind: ServiceAccount
+  name: kata-monitor
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kata-monitor
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kata-monitor
+  namespace: monitoring
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+  name: kata-monitor
+  namespace: monitoring
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: kata-monitor
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: kata-monitor
+    spec:
+      containers:
+      - command:
+        - /opt/kata/bin/kata-monitor
+        - -listen-address
+        - 0.0.0.0:9979
+        image: harbor-dev.yun-paas.com/dev/ubuntu:20.04
+        imagePullPolicy: IfNotPresent
+        name: kata-monitor
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/kata/bin/
+          name: kata-bin
+        - mountPath: /run/vc/sbs/
+          name: kata-run
+        - mountPath: /run/containerd/
+          name: containerd-run
+      dnsPolicy: ClusterFirst
+      hostNetwork: true
+      hostPID: true
+      nodeSelector:
+        katacontainers.io/kata-runtime: "true"
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: kata-monitor
+      serviceAccountName: kata-monitor
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - hostPath:
+          path: /opt/kata/bin/
+          type: DirectoryOrCreate
+        name: kata-bin
+      - hostPath:
+          path: /run/vc/sbs/
+          type: DirectoryOrCreate
+        name: kata-run
+      - hostPath:
+          path: /run/containerd/
+          type: DirectoryOrCreate
+        name: containerd-run
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate

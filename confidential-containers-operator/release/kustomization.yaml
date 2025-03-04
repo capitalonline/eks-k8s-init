@@ -1,0 +1,7 @@
+resources:
+- ../default
+
+# newTag points to the latest release image and must be updated before tagging a new release
+images:
+- name: registry-bj.capitalonline.net/eci/quay.io/confidential-containers/operator
+  newTag: v0.11.0

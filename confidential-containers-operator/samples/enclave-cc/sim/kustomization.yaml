@@ -1,0 +1,10 @@
+resources:
+- ../base
+
+nameSuffix: -sgx-mode-sim
+
+images:
+- name: registry-bj.capitalonline.net/eci/quay.io/confidential-containers/runtime-payload
+  newTag: enclave-cc-SIM-sample-kbc-v0.11.0
+- name: quay.io/confidential-containers/reqs-payload
+  newTag: 7b06283a5be08f4d83f2bf15851d55739bf27ec5

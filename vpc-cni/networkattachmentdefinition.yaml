@@ -1,0 +1,134 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: vpc-cni
+  namespace: kube-system
+spec:
+  config: '{
+    "name":"vpc-cni",
+    "cniVersion":"0.3.1",
+    "plugins":[
+        {
+            "type":"vpc-cni",
+            "server_socket":"/run/cni/vpc-cni.sock"
+        },{
+            "type": "bandwidth",
+            "capabilities": {"bandwidth": true}
+        }
+    ]
+}'
+
+---
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: vpc-cni
+  namespace: default
+spec:
+  config: '{
+    "name":"vpc-cni",
+    "cniVersion":"0.3.1",
+    "plugins":[
+        {
+            "type":"vpc-cni",
+            "server_socket":"/run/cni/vpc-cni.sock"
+        },{
+            "type": "bandwidth",
+            "capabilities": {"bandwidth": true}
+        }
+    ]
+}'
+
+
+---
+# flannel
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: flannel
+  namespace: default
+spec:
+  config: '{
+  "name": "cbr0",
+  "cniVersion": "0.3.1",
+  "plugins": [
+    {
+      "type": "flannel",
+      "delegate": {
+        "hairpinMode": true,
+        "isDefaultGateway": true
+      }
+    },
+    {
+      "type": "portmap",
+      "capabilities": {
+        "portMappings": true
+      }
+    }
+  ]
+}'
+
+---
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: flannel
+  namespace: kube-system
+spec:
+  config: '{
+  "name": "cbr0",
+  "cniVersion": "0.3.1",
+  "plugins": [
+    {
+      "type": "flannel",
+      "delegate": {
+        "hairpinMode": true,
+        "isDefaultGateway": true
+      }
+    },
+    {
+      "type": "portmap",
+      "capabilities": {
+        "portMappings": true
+      }
+    }
+  ]
+}'
+---
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: vpc-dummy-cni
+  namespace: default
+spec:
+  config: '{
+    "name":"vpc-dummy-cni",
+    "cniVersion":"0.3.1",
+    "plugins":[
+        {
+            "type":"vpc-dummy-cni"
+        },{
+            "type": "bandwidth",
+            "capabilities": {"bandwidth": true}
+        }
+    ]
+}'
+---
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: vpc-dummy-cni
+  namespace: kube-system
+spec:
+  config: '{
+    "name":"vpc-dummy-cni",
+    "cniVersion":"0.3.1",
+    "plugins":[
+        {
+            "type":"vpc-dummy-cni"
+        },{
+            "type": "bandwidth",
+            "capabilities": {"bandwidth": true}
+        }
+    ]
+}'

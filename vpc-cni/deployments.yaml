@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vpc-cni-manager
+  namespace: kube-system
+  labels:
+    app: vpc-cni
+    component: manager
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: vpc-cni
+      component: manager
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: vpc-cni
+        component: manager
+    spec:
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: vpc-cni
+                  component: manager
+              topologyKey: kubernetes.io/hostname
+      priorityClassName: system-cluster-critical
+      serviceAccountName: vpc-cni
+      hostNetwork: true
+      containers:
+        - name: cni-manager
+          image: harbor-dev.yun-paas.com/dev/vpc-cni:v1.0.0
+          imagePullPolicy: IfNotPresent 
+          ports:
+            - name: http-metrics
+              containerPort: 9899 
+              protocol: TCP
+          command:
+            - /cni/cni-manager
+            - --kube-client-qps=300
+            - --kube-client-burst=600
+          env:
+            - name: DEFAULT_NETWORK_TYPE
+              value: "Underlay" 
+            - name: DEFAULT_IP_FAMILY
+              value: "IPv4" 
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+

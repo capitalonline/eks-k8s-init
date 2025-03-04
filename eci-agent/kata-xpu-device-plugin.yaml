@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kata-xpu-dp-daemonset
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: kata-xpu-dp-ds
+  template:
+    metadata:
+      labels:
+        name: kata-xpu-dp-ds
+    spec:
+      priorityClassName: system-node-critical
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+      containers:
+      - name: kata-xpu-dp-ctr
+        image: harbor-dev.yun-paas.com/dev/kata-xpu-device-plugin:v1.0.0
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - name: device-plugin
+            mountPath: /var/lib/kubelet/device-plugins
+          - name: pod-resources
+            mountPath: /var/lib/kubelet/pod-resources
+          - name: vfio
+            mountPath: /dev/vfio
+          - name: container-device-interface
+            mountPath: /var/run/cdi
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          periodSeconds: 10
+          initialDelaySeconds: 3
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          periodSeconds: 10
+          initialDelaySeconds: 3
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+        - name: pod-resources
+          hostPath:
+            path: /var/lib/kubelet/pod-resources
+        - name: vfio
+          hostPath:
+            path: /dev/vfio
+        - name: container-device-interface
+          hostPath:
+            path: /var/run/cdi
+      nodeSelector:
+        kubernetes.io/os: "linux"
+        katacontainers.io/kata-runtime: "true"

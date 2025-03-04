@@ -1,0 +1,426 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpc-server
+  namespace: kube-system
+  labels:
+    name: grpc-server
+spec:
+  type: NodePort
+  ports:
+  - port: 32000
+    protocol: TCP
+    targetPort: 9990
+    nodePort: 32000
+    name: grpc-server
+  selector:
+    name: grpc-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ws-server
+  namespace: kube-system
+  labels:
+    name: ws-server
+spec:
+  type: NodePort
+  ports:
+    - port: 32001
+      protocol: TCP
+      targetPort: 32001
+      nodePort: 32001
+      name: ws-server
+  selector:
+    app: ws-server
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eci-agent
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: eci-agent-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: eci-agent-cluster-role
+subjects:
+- kind: ServiceAccount
+  name: eci-agent
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: eci-agent-cluster-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - resourcequotas
+  - events
+  - endpoints
+  - configmaps
+  - persistentvolumes
+  - persistentvolumeclaims
+  - pods
+  - pods/status
+  - secrets
+  - services
+  - nodes
+  - nodes/status
+  - namespaces
+  - serviceaccounts
+  - serviceaccounts/token
+  - pods/log
+  - pods/exec
+  - nodes/log
+  - nodes/proxy
+  verbs:
+  - patch
+  - get
+  - watch
+  - list
+  - delete
+  - update
+  - create
+- apiGroups:
+  - "coordination.k8s.io"
+  resources:
+  - leases 
+  verbs:
+  - get
+  - create
+  - update
+- apiGroups:
+  - "apps"
+  resources:
+  - statefulsets
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+  - update
+  - create
+- apiGroups:
+  - "eci-agent.eci-agent"
+  resources:
+  - vpods
+  - vnodes
+  - vpods/status
+  - vnodes/status
+  - noderesourcequotas
+  - noderesourcequotas/status
+  verbs:
+  - patch
+  - get
+  - watch
+  - list
+  - delete
+  - update
+  - create
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eci-agent
+  namespace: kube-system
+spec:
+  revisionHistoryLimit: 10
+  replicas: 3
+  selector:
+    matchLabels:
+      name: eci-agent
+  template:
+    metadata:
+      labels:
+        name: eci-agent
+    spec:
+      affinity:       
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution: 
+           - labelSelector:   
+               matchExpressions:
+               - key: name
+                 operator: In
+                 values:
+                 - eci-agent
+             topologyKey: kubernetes.io/hostname  
+      containers:
+      - command:
+        - /eci/eci-agent
+        - --leader-elect=true
+        - --kube-client-qps=1500
+        - --kube-client-burst=3000
+        - --pod-max-concurrent-reconciles=500
+        - --vpod-max-concurrent-reconciles=500
+        - --vpodstatus-max-concurrent-reconciles=500
+        - --remote-grpc-address=eci-grpc-service-pre.capitalcloud.net
+        - --remote-grpc-port=8080
+        image: harbor-dev.yun-paas.com/dev/eci-agent:v1.0.0
+        imagePullPolicy: Always
+        name: eci-agent
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          periodSeconds: 10
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          periodSeconds: 10
+          initialDelaySeconds: 10
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+      nodeSelector:
+        k8s.cds.com/eks-platform-service: "yes"
+      restartPolicy: Always
+      serviceAccount: eci-agent
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.eks.net/infra
+        operator: Exists
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 30
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 30
+      - key: node.cloudprovider.kubernetes.io/uninitialized
+        operator: Exists
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grpc-server
+  namespace: kube-system
+spec:
+  revisionHistoryLimit: 10
+  replicas: 3
+  selector:
+    matchLabels:
+      name: grpc-server
+  template:
+    metadata:
+      labels:
+        name: grpc-server
+    spec:
+      affinity:       
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution: 
+           - labelSelector:   
+               matchExpressions:
+               - key: name
+                 operator: In
+                 values:
+                 - grpc-server
+             topologyKey: kubernetes.io/hostname  
+      containers:
+      - command:
+        - /eci/grpc-server
+        image: harbor-dev.yun-paas.com/dev/eci-agent:v1.0.0
+        imagePullPolicy: Always
+        name: grpc-server
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8082
+          periodSeconds: 10
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          periodSeconds: 10
+          initialDelaySeconds: 10
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+      nodeSelector:
+        k8s.cds.com/eks-platform-service: "yes"
+      restartPolicy: Always
+      serviceAccount: eci-agent
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.eks.net/infra
+        operator: Exists
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 30
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 30
+      - key: node.cloudprovider.kubernetes.io/uninitialized
+        operator: Exists
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: eci-daemon
+  namespace: kube-system
+  labels:
+    app: eci-daemon
+    component: daemon
+spec:
+  selector:
+    matchLabels:
+      app: eci-daemon
+      component: daemon
+  template:
+    metadata:
+      labels:
+        app: eci-daemon
+        component: daemon
+    spec:
+      priorityClassName: system-cluster-critical
+      serviceAccount: eci-agent
+      hostNetwork: true
+      hostPID: true
+      containers:
+        - name: eci-daemon
+          image: harbor-dev.yun-paas.com/dev/eci-agent:v1.0.0
+          imagePullPolicy: Always
+          command:
+            - /eci/eci-daemon
+          env:
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - mountPath: /var/lib/containerd
+              name: containerd-lib
+            - mountPath: /var/run/netns/
+              name: netns
+              mountPropagation: Bidirectional
+          securityContext:
+            privileged: true
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 11051
+            periodSeconds: 10
+            initialDelaySeconds: 5
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 11051
+            periodSeconds: 10
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 3
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      nodeSelector:
+        kubernetes.io/os: "linux"
+        katacontainers.io/kata-runtime: "true"
+      volumes:
+        - name: containerd-lib
+          hostPath:
+            path: /var/lib/containerd
+            type: DirectoryOrCreate
+        - name: netns
+          hostPath:
+            path: /var/run/netns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ws-server
+  namespace: kube-system
+  labels:
+    app: ws-server
+spec:
+  revisionHistoryLimit: 10
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ws-server
+  template:
+    metadata:
+      labels:
+        app: ws-server
+    spec:
+      containers:
+      - name: ws-server
+        image: harbor-dev.yun-paas.com/dev/eci-agent:v1.0.0
+        imagePullPolicy: Always
+        command:
+          - /eci/ws-server
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          periodSeconds: 10
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          periodSeconds: 10
+          initialDelaySeconds: 10
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      serviceAccountName: eci-agent
+      nodeSelector:
+        k8s.cds.com/eks-platform-service: "yes"
+
+
