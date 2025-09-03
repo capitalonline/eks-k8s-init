@@ -1,0 +1,9 @@
+---
+apiVersion: networks.networking.kubernetes.com/v1
+kind: Network
+metadata:
+  name: underlay-network
+spec:
+  type: Underlay
+  nodeSelector:
+    kubernetes.io/os: linux
