@@ -195,8 +195,7 @@ spec:
                 configMapKeyRef:
                   name: cds-properties
                   key: vpc_id
-#          image: capitalonline/eks-cloud-controller-manager:v1.0.5-test
-          image: harbor-dev.yun-paas.com/dev/eks-cloud-controller-manager:v1.0.6
+          image: capitalonline/eks-cloud-controller-manager:v1.0.8
           imagePullPolicy: Always
           name: cds-cloud-controller-manager
           resources:
