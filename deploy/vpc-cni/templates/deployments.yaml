@@ -65,12 +65,12 @@ spec:
             secretKeyRef:
               key: access_key_secret
               name: eks-secrets
-        - name: EKS_API_SCHEMA
+        - name: CDS_API_SCHEMA
           valueFrom:
             configMapKeyRef:
               key: openapi_schema
               name: cds-properties
-        - name: EKS_API_HOST
+        - name: CDS_API_HOST
           valueFrom:
             configMapKeyRef:
               key: openapi_host
