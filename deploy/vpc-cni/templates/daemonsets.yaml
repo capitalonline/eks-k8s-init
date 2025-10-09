@@ -17,6 +17,16 @@ spec:
         app: vpc-cni
         component: daemon
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node.kubernetes.io/host-type
+                operator: In
+                values:
+                - ecs
+                - bms
       tolerations:
         - operator: Exists
         - key: node-role.kubernetes.io/master
