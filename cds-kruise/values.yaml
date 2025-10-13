@@ -89,6 +89,16 @@ daemon:
   socketFile: ""
 
   nodeSelector: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: node.kubernetes.io/host-type
+            operator: In
+            values:
+            - ecs
+            - bms
   resources:
     limits:
       cpu: 50m
