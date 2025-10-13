@@ -144,6 +144,16 @@ spec:
       labels:
         app: oss-csi-cds-node
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node.kubernetes.io/host-type
+                operator: In
+                values:
+                - ecs
+                - bms
       initContainers:
         - name: install-oss-server
           image: capitalonline/oss-server:v1.0.1

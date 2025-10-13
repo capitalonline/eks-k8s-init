@@ -17,6 +17,16 @@ spec:
         app: vpc-cni
         component: daemon
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node.kubernetes.io/host-type
+                operator: In
+                values:
+                - ecs
+                - bms
       tolerations:
         - operator: Exists
         - key: node-role.kubernetes.io/master
@@ -27,7 +37,7 @@ spec:
       hostPID: true
       initContainers:
       - name: install-cni
-        image: capitalonline/vpc-cni:v3.0.0 
+        image: capitalonline/vpc-cni:v3.0.1 
         imagePullPolicy: Always
         command: ["/cni/install-cni.sh"]
         securityContext:
@@ -43,7 +53,7 @@ spec:
           subPath: cni-config
       containers:
       - name: cni-daemon
-        image: capitalonline/vpc-cni:v3.0.0 
+        image: capitalonline/vpc-cni:v3.0.1 
         imagePullPolicy: Always
         command:
         - sh
