@@ -87,8 +87,6 @@ spec:
         - mountPath: /etc/adapter
           name: config
           readOnly: false
-      nodeSelector:
-        kubernetes.io/alarmanger: ""
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists

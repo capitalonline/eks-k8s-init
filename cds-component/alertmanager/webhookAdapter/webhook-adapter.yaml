@@ -14,7 +14,7 @@ spec:
         app: alertmanager-webhook-adapter
     spec:
       nodeSelector:
-        kubernetes.io/alarmanger: ""
+        node-role.kubernetes.io/control-plane: ""
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists

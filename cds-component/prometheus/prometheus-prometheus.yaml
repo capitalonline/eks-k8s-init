@@ -21,7 +21,7 @@ spec:
   externalLabels: {}
   image: registry-bj.capitalonline.net/eks/prometheus:v2.46.0
   nodeSelector:
-    kubernetes.io/monitoring: ""
+    kubernetes.io/prometheus: ""
   tolerations:
     - key: node-role.kubernetes.io/control-plane
       operator: Exists
