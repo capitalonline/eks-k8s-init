@@ -35,7 +35,7 @@ spec:
       hostNetwork: true
       containers:
       - name: cni-manager
-        image: capitalonline/vpc-cni:v3.0.2
+        image: registry-cds.yun-paas.com/cds-eks/vpc-cni:v3.0.2
         imagePullPolicy: Always 
         ports:
         - name: http-metrics
@@ -140,7 +140,7 @@ spec:
       hostNetwork: true
       containers:
       - name: vpc-cni-webhook
-        image: capitalonline/vpc-cni:v3.0.2
+        image: registry-cds.yun-paas.com/cds-eks/vpc-cni:v3.0.2
         imagePullPolicy: Always 
         command:
         - /cni/vpc-cni-webhook

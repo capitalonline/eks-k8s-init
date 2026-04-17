@@ -98,7 +98,7 @@ spec:
       serviceAccountName: local-path-provisioner-service-account
       containers:
         - name: local-path-provisioner
-          image: capitalonline/local-path-provisioner:master-head
+          image: registry-cds.yun-paas.com/cds-eks/local-path-provisioner:master-head
           imagePullPolicy: IfNotPresent
           command:
             - local-path-provisioner
@@ -167,5 +167,5 @@ data:
           effect: NoSchedule
       containers:
       - name: helper-pod
-        image: capitalonline/busybox:latest
+        image: registry-cds.yun-paas.com/cds-eks/busybox:latest
         imagePullPolicy: IfNotPresent
