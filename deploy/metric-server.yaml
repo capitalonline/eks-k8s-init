@@ -148,7 +148,7 @@ spec:
             - --kubelet-use-node-status-port
             - --metric-resolution=15s
             - --kubelet-insecure-tls
-          image: capitalonline/metrics-server:v0.6.3
+          image: registry-cds.yun-paas.com/cds-eks/metrics-server:v0.6.3
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3
@@ -191,7 +191,7 @@ spec:
         - emptyDir: {}
           name: tmp-dir
       tolerations:
-        - key: node-role.kubernetes.io/control-plane
+        - key: node-role.kubernetes.io/master
           effect: NoSchedule
           operator: Exists
         - key: node-role.eks.net/infra
